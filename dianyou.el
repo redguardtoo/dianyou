@@ -1,4 +1,4 @@
-;;; dianyou.el --- Search/Analyze mails in Gnus
+;;; dianyou.el --- Analyze mails in Gnus
 
 ;; Copyright (C) 2019 Chen Bin
 ;;
@@ -33,9 +33,101 @@
 (require 'gnus-util)
 
 (defun dianyou-read-params (x)
-  (let* ((rlt (nnir-read-parms (nnir-server-to-search-engine (car x)))))
-    (message "rlt=%s" rlt)
-    rlt))
+  (nnir-read-parms (nnir-server-to-search-engine (car x))))
+
+(defun dianyou-format-date (year month day)
+  (let* ((months '("Jan"
+                   "Feb"
+                   "Mar"
+                   "Apr"
+                   "May"
+                   "Jun"
+                   "Jul"
+                   "Aug"
+                   "Sep"
+                   "Oct"
+                   "Nov"
+                   "Dec")))
+    (when (stringp year)
+      (setq year (string-to-number year)))
+    (cond
+     ((and (< year 100) (> year 90))
+      (setq year (+ year 1900)))
+     ((and (< year 100))
+      (setq year (+ year 2000))))
+
+    (when (stringp month)
+      (setq month (string-to-number month)))
+
+    (when (stringp day)
+      (setq day (string-to-number day)))
+    (format "%02d-%s-%d"
+            day
+            (nth (1- month) months)
+            year)))
+
+(defun dianyou-format-dash-date (date)
+  (let* ((a (split-string date "-")))
+    (dianyou-format-date (nth 0 a) (nth 1 a) (nth 2 a))))
+
+(defun dianyou-translate-date-shortcut (str)
+  (let* ((y 0) (m 0) (w 0) (d 0) seconds)
+    (when (string-match "\\([0-9]\\{1,2\\}\\)y" str)
+      (setq y (string-to-number (match-string 1 str))))
+    (when (string-match "\\([0-9]\\{1,2\\}\\)m" str)
+      (setq m (string-to-number (match-string 1 str))))
+    (when (string-match "\\([0-9]\\{1,2\\}\\)w" str)
+      (setq w (string-to-number (match-string 1 str))))
+    (when (string-match "\\([0-9]\\{1,2\\}\\)d" str)
+      (setq d (string-to-number (match-string 1 str))))
+    (setq seconds (+ (* d 86400) ; 1 day
+                     ;; 7 days
+                     (* w 604800)
+                     ;; 31 days
+                     (* m 2678400)
+                     ;; 365 days
+                     (* y 31536000)))
+    (dianyou-format-dash-date
+     (format-time-string "%Y-%m-%d"
+                         (time-subtract (current-time)
+                                        (seconds-to-time seconds))))))
+
+(defun dianyou-translate (word)
+  (cond
+   ((string= word "f")
+    "FROM")
+   ((string= word "t")
+    "TO")
+   ((string= word "s")
+    "SINCE")
+   ((string= word "c")
+    "CC")
+   ;; 2018-09-03 or 18-09-03
+   ((string-match "[0-9]\\{2,4\\}-[0-9]\\{1,2\\}-[0-9]\\{1,2\\}" word)
+    (dianyou-format-dash-date word))
+   ;; 180903
+   ((string-match "[0-9]\\{6\\}" word)
+    (dianyou-format-date (substring word 0 2)
+                         (substring word 2 4)
+                         (substring word 4 6)))
+
+   ;; 20180903
+   ((string-match "[0-9]\\{8\\}" word)
+    (dianyou-format-date (substring word 0 4)
+                         (substring word 4 6)
+                         (substring word 6 8)))
+
+   ((and (not (string= word ""))
+         (string-match "^\\([0-9][0-9]?y\\)?\\([0-9][0-9]?m\\)?\\([0-9][0-9]?w\\)?\\([0-9][0-9]?d\\)?$" word))
+    (dianyou-translate-date-shortcut word))
+  (t
+    word)))
+
+(defun dianyou-read-query ()
+  (interactive)
+  (let* ((q (read-string "Query: " nil 'nnir-search-history))
+         (words (split-string q " ")))
+    (string-join (mapcar 'dianyou-translate words) " ")))
 
 (defun dianyou-group-make-nnir-group ()
   "Create an nnir group.  Prompt for a search query and determine
@@ -57,7 +149,7 @@ search-engine specific constraints."
          (query-spec (apply
                       'append
                       (list (cons 'query
-                                  (read-string "Query: " nil 'nnir-search-history)))
+                                  (dianyou-read-query)))
                       (mapcar #'dianyou-read-params group-spec))))
     (gnus-group-read-ephemeral-group
      (concat "nnir-" (message-unique-id))
@@ -70,6 +162,6 @@ search-engine specific constraints."
       (cons 'nnir-specs (list (cons 'nnir-query-spec query-spec)
                               (cons 'nnir-group-spec group-spec)))
       (cons 'nnir-artlist nil)))))
+
 (provide 'dianyou)
 ;;; dianyou.el ends here
-

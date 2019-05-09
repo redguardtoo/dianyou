@@ -129,6 +129,7 @@
          (words (split-string q " ")))
     (string-join (mapcar 'dianyou-translate words) " ")))
 
+;;;###autoload
 (defun dianyou-group-make-nnir-group ()
   "Create an nnir group.  Prompt for a search query and determine
 the groups to search as follows: if called from the *Server*

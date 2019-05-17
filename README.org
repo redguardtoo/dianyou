@@ -1,0 +1,18 @@
+* dianyou 0.0.2
+
+[[http://melpa.org/#/dianyou][file:http://melpa.org/packages/dianyou-badge.svg]] [[http://stable.melpa.org/#/dianyou][file:http://stable.melpa.org/packages/dianyou-badge.svg]]
+
+Search and analyze mails in Gnus
+
+* Install
+Place [[https://raw.githubusercontent.com/redguardtoo/dianyou/master/dianyou.el][dianyou.el]] under [[https://www.emacswiki.org/emacs/LoadPath][Load Path]]. Then add =(require 'dianyou)= to your configuration.
+* Usage
+=M-x dianyou-group-make-nnir-group= to search mail in any Gnus buffer. It's similar to =gnus-group-make-nnir-group= but supports shortcuts when using [[https://tools.ietf.org/html/rfc3501#section-6.4.4][IMAP search command]].
+
+For example, input =s 2w f John=, then select "imap" when asked how to search. Mails from John sent since 2 weeks ago are returned.
+
+=M-x dianyou-insert-email-address-from-received-mails= to insert email address from received mails.
+
+The accessed email address is automatically stored in variable =dianyou-email-address-history=, which could be persisted by [[https://github.com/jwiegley/session][session]].
+* Contact me
+Report bug at [[https://github.com/redguardtoo/dianyou]].

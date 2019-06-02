@@ -1,4 +1,4 @@
-;;; dianyou.el --- Search and analyze mails in Gnus
+;;; dianyou.el --- Search and analyze mails in Gnus -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2019 Chen Bin
 ;;
@@ -235,13 +235,12 @@ The email address should not match REGEXP."
         (and regexp (not (string= regexp "")) (string-match regexp address)))
     list)
    (t
-    (setq list (add-to-list 'list address)))))
+    (push address list))))
 
 ;;;###autoload
-(defun dianyou-all-email-address (&optional exclude-regexp quiet)
+(defun dianyou-all-email-address (&optional exclude-regexp)
   "Return all email address extracted from received mails.
-Email address matching EXCLUDE-REGEXP is excluded from final result.
-If QUIET is t, show no progress report when extracting email address."
+Email address matching EXCLUDE-REGEXP is excluded from final result."
   (let* (str (i 0) header cc-to cands)
     (dolist (d gnus-newsgroup-data)
       (setq header (gnus-data-header d))

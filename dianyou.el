@@ -5,7 +5,7 @@
 ;; Version: 0.0.2
 ;; Keywords: mail
 ;; Author: Chen Bin <chenbin DOT sh AT gmail DOT com>
-;; URL: http://github.com/usrname/dianyou
+;; URL: http://github.com/redguardtoo/dianyou
 ;; Package-Requires: ((emacs "24.4"))
 
 ;; This file is not part of GNU Emacs.

@@ -326,5 +326,46 @@ Final result is inserted into `kill-ring' and returned."
                                          (dianyou-get-all-email-addresses))))
     (if email-address (insert email-address))))
 
+;;;###autoload
+(defun dianyou-switch-gnus-buffer ()
+  "Switch between Gnus buffers."
+  (interactive)
+  (let* ((curbuf (buffer-name (current-buffer)))
+         (cands (internal-complete-buffer
+                 ""
+                 `(lambda (b)
+                    (let* ((bn (car b)))
+                      (unless (or (string= ,curbuf bn)
+                                  (not (string-match "^\*\\(Group\\|Summary\\|Article\\|unsent\\)" bn)))
+                        b)))
+                 t))
+
+         (buf (and cands (completing-read "Switch to buffer: " cands))))
+    (cond
+     (buf
+      (switch-to-buffer buf))
+     (t
+      (message "No other Gnus buffer.")))))
+
+;;;###autoload
+(defun dianyou-paste-image-from-clipboard ()
+  "Paste image from clipboard.  CLI program xclip is required."
+  (interactive)
+  (cond
+   ((executable-find "xclip")
+    ;; Execute "xclip -selection clipboard  -t image/png -o > test.png"
+    (let* ((file (make-temp-file "email-" nil ".png"))
+           (disposition (completing-read "Dispostion (default attachment): " '("attachment" "inline"))))
+      (call-process "xclip" nil t nil (format "-selection clipboard -t image/png -o > %s" file))
+      (cond
+       ((file-exists-p file)
+        (insert (format "<#part type=\"image/png\" filename=\"%s\" disposition=%s><#/part>"
+                        file
+                        (if (string= disposition "") "attachment" disposition))))
+       (t
+        (message "Failed to read image data from clipboard.")))))
+   (t
+    (message "CLI program xclip should be installed at first."))))
+
 (provide 'dianyou)
 ;;; dianyou.el ends here

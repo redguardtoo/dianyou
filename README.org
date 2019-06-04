@@ -1,4 +1,4 @@
-* dianyou 0.0.2
+* dianyou 0.0.3
 
 [[http://melpa.org/#/dianyou][file:http://melpa.org/packages/dianyou-badge.svg]] [[http://stable.melpa.org/#/dianyou][file:http://stable.melpa.org/packages/dianyou-badge.svg]]
 
@@ -14,5 +14,9 @@ For example, input =s 2w f John=, then select "imap" when asked how to search. M
 =M-x dianyou-insert-email-address-from-received-mails= to insert email address from received mails.
 
 The accessed email address is automatically stored in variable =dianyou-email-address-history=, which could be persisted by [[https://github.com/jwiegley/session][session]].
+
+=M-x dianyou-switch-gnus-buffer= to switch to any Gnus buffer.
+
+=M-x dianyou-paste-image-from-clipboard= to paste image from clipboard (CLI program [[https://github.com/astrand/xclip][xclip]] should be installed at first).
 * Contact me
 Report bug at [[https://github.com/redguardtoo/dianyou]].

@@ -2,10 +2,12 @@
 
 [[http://melpa.org/#/dianyou][file:http://melpa.org/packages/dianyou-badge.svg]] [[http://stable.melpa.org/#/dianyou][file:http://stable.melpa.org/packages/dianyou-badge.svg]]
 
-Search and analyze mails in Gnus
+Dianyou (电邮) searches and analyzes mails in Gnus.
 
 * Install
 Place [[https://raw.githubusercontent.com/redguardtoo/dianyou/master/dianyou.el][dianyou.el]] under [[https://www.emacswiki.org/emacs/LoadPath][Load Path]]. Then add =(require 'dianyou)= to your configuration.
+
+It's also uploaded to [[http://melpa.org]]. The best way to install is Emacs package manager.
 * Usage
 =M-x dianyou-group-make-nnir-group= to search mail in any Gnus buffer. It's similar to =gnus-group-make-nnir-group= but supports shortcuts when using [[https://tools.ietf.org/html/rfc3501#section-6.4.4][IMAP search command]].
 

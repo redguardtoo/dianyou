@@ -302,7 +302,7 @@ Final result is inserted into `kill-ring' and returned."
 ;;;###autoload
 (defun dianyou-get-all-email-addresses ()
   "Get all email addresses in received mails and update history."
-  (let* ((all-addresses (dianyou-all-email-address))
+  (let* ((all-addresses (mapcar 'rfc2047-decode-string (dianyou-all-email-address)))
          (cands (cond
                  ((and dianyou-email-address-history all-addresses)
                   (append dianyou-email-address-history

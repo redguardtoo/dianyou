@@ -30,6 +30,7 @@
 ;; `dianyou-insert-email-address-from-received-mails' to insert email address.
 ;; `dianyou-switch-gnus-buffer' to switch between gnus buffers
 ;; `dianyou-paste-image-from-clipboard' to paste image from clipboard
+;; `dianyou-email-view-in-browser' to view the body of email in external browser
 
 ;;; Code:
 (require 'gnus-topic)
@@ -37,6 +38,7 @@
 (require 'nnir)
 (require 'gnus-srvr)
 (require 'cl-lib)
+(require 'qp) ; decode Quoted-Printable
 
 (defvar dianyou-email-address-history nil "Email address history.")
 
@@ -367,6 +369,78 @@ Final result is inserted into `kill-ring' and returned."
                         (if (string= disposition "") "attachment" disposition)))))
      (t
       (message "CLI program xclip should be installed at first.")))))
+
+(defun dianyou-remove-file-later (filename)
+  "Remove FILENAME in a few seconds."
+  (run-at-time "30 sec" nil
+               (lambda () (ignore-errors (delete-file filename)))))
+
+(defun dianyou-make-temp-file (extension)
+  "Create a temporary file with EXTENSION."
+  (let ((tmpfile (make-temp-file "dianyou-" nil (concat "." extension))))
+    ;; self-destruct file in a few seconds
+    (dianyou-remove-file-later tmpfile)
+    tmpfile))
+
+(defun dianyou-email-write-body-to-html ()
+  "Write email html body to a temporary file; return the filename."
+  ;; call `gnus-summary-show-raw-article'. Then call `gnus-summary-show-article'.
+  (let (html b e tmpfile)
+    (cond
+     ((member major-mode '(gnus-summary-mode gnus-article-mode))
+      ;; show raw article
+      (gnus-summary-show-article t)
+
+      (when (eq major-mode 'gnus-summary-mode)
+        ;; move focus to the article
+        (let* ((article-win (cl-find-if (lambda (w)
+                                          (string-match-p "*Article *" (buffer-name (window-buffer w))))
+                                        (cl-mapcan (lambda (&optional frame)
+                                                     (window-list frame 0 (frame-first-window frame)))
+                                                   (visible-frame-list)))))
+          (when article-win (select-window article-win))))
+
+      ;; search from email beginning
+      (goto-char (point-min))
+
+      ;; search html body
+      (when (and (re-search-forward "^Content-Type: text/html; " (point-max) t)
+                 (setq b (re-search-forward "^<html>" (point-max) t))
+                 (setq e (re-search-forward "^</html>" (point-max) t)))
+        (save-excursion
+          (goto-char e)
+          (setq e (line-end-position)))
+        (setq html (buffer-substring b e))
+
+        (setq tmpfile (dianyou-make-temp-file "html"))
+        (let* ((coding-system-for-write 'utf-8))
+          (with-temp-buffer
+            (insert "<html>")
+            (insert html)
+            ;; decode
+            (quoted-printable-decode-region (point-min) (point-max))
+            ;; save
+            (write-region (point-min) (point-max) tmpfile))))
+
+      ;; hide raw article
+      (gnus-summary-show-article))
+
+     (t
+      (message "Run this command in `gnus-summary-mode' or `gnus-article-mode'.")))
+
+    tmpfile))
+
+;;;###autoload
+(defun dianyou-email-view-in-browser ()
+  "View the body of email in browser.
+You can influence the browser to use with the variable `browse-url-generic-program'."
+  (interactive)
+  (let* ((local-msg (dianyou-email-write-body-to-html)))
+    (cond
+     (local-msg
+      (browse-url (concat "file://" local-msg)))
+     (t
+      (message "This is not html email.")))))
 
 (provide 'dianyou)
 ;;; dianyou.el ends here

@@ -22,5 +22,7 @@ The accessed email address is automatically stored in variable =dianyou-email-ad
 =M-x dianyou-paste-image-from-clipboard= to paste image from clipboard (CLI program [[https://github.com/astrand/xclip][xclip]] should be installed at first).
 
 =M-x dianyou-email-view-in-browser= to view the body of email in external browser. You can influence the browser to use with the variable =browse-url-generic-program=.
+
+=M-x dianyou-email-view-in-web-ui= to view the email in its web UI.
 * Contact me
 Report bug at [[https://github.com/redguardtoo/dianyou]].

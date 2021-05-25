@@ -28,9 +28,10 @@
 
 ;; `dianyou-group-make-nnir-group' to search mails.
 ;; `dianyou-insert-email-address-from-received-mails' to insert email address.
-;; `dianyou-switch-gnus-buffer' to switch between gnus buffers
-;; `dianyou-paste-image-from-clipboard' to paste image from clipboard
-;; `dianyou-email-view-in-browser' to view the body of email in external browser
+;; `dianyou-switch-gnus-buffer' to switch between gnus buffers.
+;; `dianyou-paste-image-from-clipboard' to paste image from clipboard.
+;; `dianyou-email-view-in-browser' to view the body of email in external browser.
+;; `dianyou-email-view-in-web-ui' to view the email in its web UI.
 
 ;;; Code:
 (require 'gnus-topic)
@@ -38,7 +39,14 @@
 (require 'nnir)
 (require 'gnus-srvr)
 (require 'cl-lib)
+(require 'url-util)
 (require 'qp) ; decode Quoted-Printable
+
+(defvar dianyou-email-web-ui-alist
+  '(("gmail.com$" . "https://mail.google.com/mail/u/0/#search/rfc822msgid:%s"))
+  "An alist of regex and url for open email web ul.
+It's used by `dianyou-email-view-in-web-ui'.
+Please note links here should not be url encoded.")
 
 (defvar dianyou-email-address-history nil "Email address history.")
 
@@ -382,26 +390,30 @@ Final result is inserted into `kill-ring' and returned."
     (dianyou-remove-file-later tmpfile)
     tmpfile))
 
+(defun dianyou-show-and-focus-on-raw-article ()
+  "Show and focus on raw article."
+  ;; show raw article
+  (gnus-summary-show-article t)
+
+  (when (eq major-mode 'gnus-summary-mode)
+    ;; move focus to the article
+    (let* ((article-win (cl-find-if (lambda (w)
+                                      (string-match-p "*Article *" (buffer-name (window-buffer w))))
+                                    (cl-mapcan (lambda (&optional frame)
+                                                 (window-list frame 0 (frame-first-window frame)))
+                                               (visible-frame-list)))))
+      (when article-win (select-window article-win))))
+
+  ;; search from email beginning
+  (goto-char (point-min)))
+
 (defun dianyou-email-write-body-to-html ()
   "Write email html body to a temporary file; return the filename."
   ;; call `gnus-summary-show-raw-article'. Then call `gnus-summary-show-article'.
   (let (html b e tmpfile)
     (cond
      ((member major-mode '(gnus-summary-mode gnus-article-mode))
-      ;; show raw article
-      (gnus-summary-show-article t)
-
-      (when (eq major-mode 'gnus-summary-mode)
-        ;; move focus to the article
-        (let* ((article-win (cl-find-if (lambda (w)
-                                          (string-match-p "*Article *" (buffer-name (window-buffer w))))
-                                        (cl-mapcan (lambda (&optional frame)
-                                                     (window-list frame 0 (frame-first-window frame)))
-                                                   (visible-frame-list)))))
-          (when article-win (select-window article-win))))
-
-      ;; search from email beginning
-      (goto-char (point-min))
+      (dianyou-show-and-focus-on-raw-article)
 
       ;; search html body
       (when (and (re-search-forward "^Content-Type: text/html; " (point-max) t)
@@ -441,6 +453,45 @@ You can influence the browser to use with the variable `browse-url-generic-progr
       (browse-url (concat "file://" local-msg)))
      (t
       (message "This is not html email.")))))
+
+(defun dianyou-current-line ()
+  "Get current line."
+  (string-trim (buffer-substring (line-beginning-position) (line-end-position))))
+
+(defun dianyou-email-view-in-web-ui ()
+  "View the email in its web interface.
+It looks up `dianyou-email-web-ui-alist' to find correct url of web ui.
+You can influence the browser to use with the variable `browse-url-generic-program'."
+  (interactive)
+  (let (delivered-to message-id found)
+    (cond
+     ((member major-mode '(gnus-summary-mode gnus-article-mode))
+      (dianyou-show-and-focus-on-raw-article)
+
+      (re-search-forward "^Delivered-To: " (point-max) t)
+      (setq delivered-to (string-trim (replace-regexp-in-string "^Delivered-To: "
+                                                                ""
+                                                                (dianyou-current-line))))
+      ;; search html body
+      (when (re-search-forward "^Message-Id: " (point-max) t)
+        (setq message-id (dianyou-current-line))
+        (when (string-match "^Message-Id: <\\([^<>]*\\)>" message-id)
+          (setq message-id (match-string 1 message-id))))
+
+      ;; hide raw article
+      (gnus-summary-show-article)
+
+      (setq found (cl-find-if (lambda (pattern) (string-match-p (car pattern) delivered-to))
+                              dianyou-email-web-ui-alist))
+      (cond
+       (found
+        (browse-url (url-encode-url (format (cdr found) message-id))))
+
+       (t
+        (message "Not sure where the mail is delivered to.  Please set up `dianyou-email-web-ui-alist' first."))))
+
+     (t
+      (message "Run this command in `gnus-summary-mode' or `gnus-article-mode'.")))))
 
 (provide 'dianyou)
 ;;; dianyou.el ends here
